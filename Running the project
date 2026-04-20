@@ -1,0 +1,5 @@
+How to run the project:
+1. Install Required Libraries 
+pip install pandas matplotlib transformers torch
+2. Run the project
+python emotion_music.py
