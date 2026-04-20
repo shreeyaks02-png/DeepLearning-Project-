@@ -1,0 +1,124 @@
+This is the python code 
+# ==========================================
+#  Emotion Detection → Music Recommendation
+# DATASET VERSION (3 SONGS PER EMOTION)
+# ==========================================
+
+import pandas as pd
+from transformers import pipeline
+
+# ------------------------------------------
+# Load Model
+# ------------------------------------------
+
+    model="j-hartmann/emotion-english-distilroberta-base",
+    top_k=None
+)
+
+print(" Model Loaded Successfully!")
+
+# ------------------------------------------
+# Load Dataset
+# ------------------------------------------
+
+df = pd.read_csv("songs_dataset.csv", encoding="utf-8")
+
+# ------------------------------------------
+# Map Dataset Emotions → Model Emotions
+# ------------------------------------------
+
+dataset_to_model = {
+    "Happy/Joyful": "joy",
+    "Sad/Melancholy": "sadness",
+    "Angry/Aggressive": "anger",
+    "Fearful/Anxious": "fear",
+    "Love/Romantic": "love",
+    "Calm/Peaceful": "neutral",
+    "Surprised/Shocked": "surprise",
+    "Disgusted": "disgust"
+}
+
+# ------------------------------------------
+# Build Emotion → Songs Dictionary
+# ------------------------------------------
+
+emotion_to_songs = {}
+
+for _, row in df.iterrows():
+    emotion = dataset_to_model.get(row["Emotion"], "neutral")
+
+    song = (
+        f"{row['Song_Title']} – {row['Artist']}",
+        row["Access_Link"]
+    )
+
+    if emotion not in emotion_to_songs:
+        emotion_to_songs[emotion] = []
+
+    emotion_to_songs[emotion].append(song)
+
+# ------------------------------------------
+# Emotion Detection
+# ------------------------------------------
+
+def predict_emotions(text):
+
+    results = emotion_classifier(text)
+
+    if isinstance(results[0], list):
+        emotions_scores = results[0]
+    else:
+        emotions_scores = results
+
+    emotions_scores = sorted(
+        emotions_scores,
+        key=lambda x: x["score"],
+        reverse=True
+    )
+
+    return [e["label"].lower() for e in emotions_scores[:3]]
+
+# ------------------------------------------
+# Recommend Songs (TOP 3 FROM DATASET)
+# ------------------------------------------
+
+def recommend_songs(emotions):
+
+    recommendations = {}
+
+    for emotion in emotions:
+        songs = emotion_to_songs.get(emotion, [])
+
+        if songs:
+            recommendations[emotion] = songs[:3]   
+
+    return recommendations
+
+# ------------------------------------------
+# Main Program
+# ------------------------------------------
+
+if __name__ == "__main__":
+
+    print("\n=== Emotion-Based Music Recommendation (Dataset + 3 Songs) ===")
+
+    while True:
+
+        text = input("\nEnter podcast transcript (or type 'exit'):\n> ")
+
+        if text.lower() == "exit":
+            break
+
+        emotions = predict_emotions(text)
+        recs = recommend_songs(emotions)
+
+        print("\n🎭 Detected Emotions:", ", ".join(emotions))
+
+        print("\n🎵 Song Recommendations:")
+
+        for emo, songs in recs.items():
+            print(f"\n➡ {emo.upper()}")
+
+            for song, link in songs:
+                print(f"   🎶 {song}")
+                print(f"   🔗 {link}")
